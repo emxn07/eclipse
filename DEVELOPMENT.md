@@ -30,7 +30,7 @@ Rules for every milestone:
 
 Last updated: 2026-11-11.
 
-All three test suites pass: 400 unit checks, 185 integration tests,
+All three test suites pass: 411 unit checks, 188 integration tests,
 50 pty tests.
 
 ### Done
@@ -151,6 +151,11 @@ correctly or quoting breaks.
 (`expand_aliases` in `parser.c`). A name is not re-expanded at the same
 position (so `alias ls='ls --color'` is fine), and a hard cap of 256
 expansions per line catches loops through operators.
+
+**Scripting keywords are a parse error** (`is_script_keyword` in
+`parser.c`). `if`, `for`, `while` and friends in command position reject
+the whole line before anything executes. Without this, `if rm -rf build;
+then ...` would run the `rm` and only then fail on `then`.
 
 **Source runs one complete command at a time** (`Runner` in `shell.c`).
 Lines are fed in and executed as soon as they parse. This is why an alias

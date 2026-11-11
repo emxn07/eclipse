@@ -122,6 +122,9 @@ check "line continuation"         "echo one \\${NL}two"             'one two'
 check_err "unclosed quote"        "echo 'oops"                      'unexpected end of input' 2
 check_err "syntax error"          'echo a | | b'                    'syntax error' 2
 check_err "dangling redirection"  'echo >'                          'expected a file name' 2
+check_err "scripting keyword"     'if true; then echo hi; fi'       'scripting syntax' 2
+check "keyword line runs nothing" 'echo before-keyword; if true; then echo hi; fi' '' 2
+check "keywords are fine as arguments" 'echo if then fi done'       'if then fi done' 
 
 # ---- variables and environment ---------------------------------------
 check "shell variable"            'A=1; echo $A'                    '1'

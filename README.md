@@ -317,6 +317,14 @@ leaves these out:
 - subshell groups `( ... )` and `{ ...; }`
 - `${NAME%pattern}`-style trimming, arrays and `$'...'` strings
 
+If you type one of these keywords, Eclipse says so and runs nothing on
+that line, rather than half-running it:
+
+```
+❯ if rm -rf build; then echo cleaned; fi
+eclipse: 'if' is scripting syntax, which Eclipse does not have; nothing on this line was run (use: bash -c '...' or a bash script)
+```
+
 Scripts that start with `#!/bin/sh` or `#!/bin/bash` run exactly as before
 when launched from Eclipse, because Linux hands them to the interpreter
 they name. For anything that needs logic, write it in one of those and run

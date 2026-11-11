@@ -406,6 +406,17 @@ static void test_parser(void)
     CHECK(parse("ls >", &l, &err) == PARSE_ERROR);
     CHECK(err && strstr(err, "file name"));
     free(err);
+
+    /* scripting keywords are rejected as a whole, in command position */
+    CHECK(parse("if true; then echo hi; fi", &l, &err) == PARSE_ERROR);
+    CHECK(err && strstr(err, "scripting syntax"));
+    free(err);
+    CHECK(parse_status("echo ok; for f in *; do echo $f; done") ==
+          PARSE_ERROR);
+    CHECK(parse_status("true && while true") == PARSE_ERROR);
+    CHECK(parse_status("echo if then else fi") == PARSE_OK);
+    CHECK(parse_status("'if' true") == PARSE_OK); /* quoted: a command */
+    CHECK(parse_status("FOO=1 done") == PARSE_ERROR);
 }
 
 static void test_aliases(void)

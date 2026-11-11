@@ -595,7 +595,12 @@ static void print_setting(const char *key, const char *value,
                           const char *help, void *ctx)
 {
     (void)ctx;
-    printf("%-17s = %-14s  # %s\n", key, value, help);
+    /* pad by display width: values such as the prompt symbol are not
+     * ASCII, so printf's own padding would misalign them */
+    printf("%-17s = %s", key, value);
+    for (size_t w = display_width(value); w < 14; w++)
+        putchar(' ');
+    printf("  # %s\n", help);
 }
 
 static int builtin_set(int argc, char **argv)

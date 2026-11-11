@@ -144,6 +144,11 @@ static int repl(void)
         bool warned = shell.exit_warned;
         shell_run_string(source, NULL, 0);
         free(source);
+        if (shell.abort_line || shell_interrupted) {
+            /* the terminal echoed "^C" but no newline */
+            fputc('\n', stderr);
+            fflush(stderr);
+        }
         if (warned && !shell.should_exit)
             shell.exit_warned = false;
     }

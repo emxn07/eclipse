@@ -180,12 +180,42 @@ static void push_str(char ***arr, size_t *n, char *s)
     (*arr)[*n] = NULL;
 }
 
+/* Words that begin scripting constructs in sh and bash. Eclipse has no
+ * such constructs, and treating these as ordinary command names would
+ * be dangerous: `if rm -rf build; then ...` would run the rm and only
+ * then fail on "then". Reject the whole line before anything runs. */
+static bool is_script_keyword(const char *word)
+{
+    static const char *const keywords[] = {
+        "if",   "then", "else", "elif",  "fi",   "for",      "while",
+        "until", "do",  "done", "case",  "esac", "function", "select",
+    };
+    for (size_t i = 0; i < sizeof keywords / sizeof keywords[0]; i++)
+        if (strcmp(word, keywords[i]) == 0)
+            return true;
+    return false;
+}
+
 static Command *parse_command(Parser *p)
 {
     Command *c = xcalloc(1, sizeof *c);
     for (;;) {
         Token *t = peek(p);
         if (t->type == T_WORD) {
+            if (c->nwords == 0 && is_script_keyword(t->text)) {
+                if (!p->err) {
+                    StrBuf sb;
+                    sb_init(&sb);
+                    sb_printf(&sb,
+                              "'%s' is scripting syntax, which Eclipse does "
+                              "not have; nothing on this line was run (use: bash -c "
+                              "'...' or a bash script)",
+                              t->text);
+                    p->err = sb_take(&sb);
+                }
+                command_free(c);
+                return NULL;
+            }
             if (c->nwords == 0 && is_assignment(t->text))
                 push_str(&c->assigns, &c->nassigns, xstrdup(t->text));
             else
