@@ -2,13 +2,7 @@
 
 **A friendly, modern Unix shell for Linux, written in C.**
 
-```
-[you@arch ~/projects/eclipse] (main) ❯ go documents
-~/Documents
-[you@arch ~/Documents] ❯ gti status
-eclipse: command not found: gti
-  hint: did you mean git?
-```
+![An Eclipse session: changing directory, a typo corrected with a hint, findfile, a pipeline, a background job, and an inline suggestion](docs/screenshot.svg)
 
 Eclipse runs the Linux commands you already know (pipes, redirection, job
 control and all) and adds plain-language shortcuts, suggestions as you type,
