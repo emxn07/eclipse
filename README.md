@@ -83,7 +83,7 @@ Build, test and install. Installation goes to `~/.local` and does **not**
 need root:
 
 ```sh
-git clone https://github.com/<your-username>/eclipse.git
+git clone https://github.com/emxn07/eclipse.git
 cd eclipse
 make
 make test             # optional: runs all three test suites
