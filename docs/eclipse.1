@@ -1,0 +1,287 @@
+.TH ECLIPSE 1 "2026" "Eclipse 0.1.0" "User Commands"
+.SH NAME
+eclipse \- a friendly interactive Unix shell
+.SH SYNOPSIS
+.B eclipse
+.RI [ OPTIONS ]
+.RI [ SCRIPT
+.RI [ ARGUMENTS ...]]
+.br
+.B eclipse \-c
+.I COMMAND
+.RI [ NAME
+.RI [ ARGUMENTS ...]]
+.SH DESCRIPTION
+.B eclipse
+is an interactive command interpreter. It runs ordinary Linux programs
+with pipes, redirection, job control, variables and globbing, and adds
+plain-language commands, inline suggestions from history, Tab
+completion and helpful error messages.
+.PP
+Started with no
+.I SCRIPT
+and a terminal on standard input, Eclipse is interactive. Otherwise it
+runs the commands in
+.IR SCRIPT ,
+or those read from standard input, and exits.
+.PP
+Eclipse is not a scripting language: it has no
+.BR if ,
+.BR for ,
+.B while
+or functions. Scripts written for
+.BR sh (1)
+or
+.BR bash (1)
+keep working, because the system runs them with the interpreter named
+on their first line.
+.SH OPTIONS
+.TP
+.BI \-c " COMMAND"
+Run
+.I COMMAND
+and exit. Further arguments become
+.BR $0 ,
+.BR $1 ,
+and so on.
+.TP
+.B \-\-norc
+Do not read the configuration file.
+.TP
+.BI \-\-config " FILE"
+Read
+.I FILE
+instead of the default configuration file.
+.TP
+.BR \-h ", " \-\-help
+Show a summary of options.
+.TP
+.BR \-V ", " \-\-version
+Show the version.
+.SH EVERYDAY COMMANDS
+.TP
+.BR go " [\fIFOLDER\fR]"
+Change directory. With no argument, go home. If
+.I FOLDER
+is not found here, Eclipse also tries a match that ignores case and a
+folder of that name in the home directory, and prints where it went.
+Several words are joined, so
+.B go My Folder
+works without quotes.
+.TP
+.BR up " [\fILEVELS\fR]"
+Move up one directory, or
+.I LEVELS
+directories.
+.TP
+.B back
+Return to the directory you were in before. Repeating it walks further
+back along the trail.
+.TP
+.B whereami
+Print the current directory.
+.TP
+.BI mkcd " FOLDER"
+Create a directory, with any missing parents, and enter it.
+.TP
+.BI findfile " NAME \fR[\fIFOLDER\fR]"
+List files whose names contain
+.IR NAME ,
+ignoring case, below the current directory or
+.IR FOLDER .
+Wildcards are accepted when quoted, as in
+.BR "findfile '*.pdf'" .
+.TP
+.BI extract " ARCHIVE\fR..."
+Unpack archives by their extension: .tar, .tar.gz, .tgz, .tar.bz2,
+\&.tar.xz, .tar.zst, .zip, .gz, .bz2, .xz, .zst, .7z, .rar.
+.TP
+.BR recent " [\fICOUNT\fR]"
+Show the most recently used commands, newest first, without repeats.
+.TP
+.B sysinfo
+Show the operating system, kernel, uptime, CPU, memory and disk usage.
+.SH SHELL COMMANDS
+.BR cd ,
+.BR pwd ,
+.BR echo ,
+.BR export ,
+.BR unset ,
+.BR alias ,
+.BR unalias ,
+.BR history ,
+.BR set ,
+.BR source " (also " . ),
+.BR type ,
+.BR exec ,
+.BR true ,
+.BR false ,
+.BR : ,
+.BR help ,
+.BR exit ,
+.BR jobs ,
+.BR fg ,
+.BR bg ,
+.B wait
+and
+.BR kill .
+Run
+.B help
+for a list and
+.BI help " COMMAND"
+for details.
+.SH SYNTAX
+.TP
+.IB a " | " b
+Pipe the output of
+.I a
+into
+.IR b .
+.TP
+.IB a " && " b ", " a " || " b ", " a " ; " b
+Run
+.I b
+if
+.I a
+succeeds, if it fails, or regardless.
+.TP
+.IB a " &"
+Run
+.I a
+in the background.
+.TP
+.BR < ", " > ", " >> ", " 2> ", " &> ", " 2>&1 ", " <<<
+Redirect input and output.
+.TP
+.BR 'text' ", " \(dqtext\(dq ", " \e
+Single quotes keep text literal; double quotes allow
+.B $
+expansions; a backslash quotes one character.
+.TP
+.BR $NAME ", " ${NAME} ", " ${NAME:\-default} ", " ${#NAME}
+Variables. Also
+.BR ${NAME:=default} ,
+.BR ${NAME:+alternative} ,
+.BR ${NAME:?message} ,
+and the special parameters
+.BR $? ,
+.BR $$ ,
+.BR $! ,
+.BR $# ,
+.BR $@ ,
+.BR $* ,
+.BR $0 " to " $9 .
+.TP
+.BR $(command) ", " $((expression))
+Command substitution and integer arithmetic.
+.TP
+.BR ~ ", " * ", " ? ", " [abc] ", " {a,b} ", " {1..5}
+Home directory, wildcards and brace lists.
+.TP
+.BR !! ", " !$
+The previous command, and its last word (interactive use only).
+.SH KEYS
+.TP
+.B Tab
+Complete a command, file or variable.
+.TP
+.B Right, End
+Accept the grey suggestion.
+.TP
+.B Up, Down
+Previous and next command, matching what is already typed.
+.TP
+.B Ctrl+R
+Search the history.
+.TP
+.B Ctrl+A, Ctrl+E
+Start and end of the line.
+.TP
+.B Alt+B, Alt+F
+Back and forward one word.
+.TP
+.B Ctrl+W, Ctrl+U, Ctrl+K
+Delete a word, to the start, to the end.
+.TP
+.B Ctrl+Y
+Paste what was last deleted.
+.TP
+.B Ctrl+L
+Clear the screen.
+.TP
+.B Ctrl+C
+Abandon the line, or stop the running command.
+.TP
+.B Ctrl+Z
+Suspend the running command.
+.TP
+.B Ctrl+D
+Exit, on an empty line.
+.SH CONFIGURATION
+An interactive Eclipse reads
+.I ~/.config/eclipse/config
+(or
+.I $XDG_CONFIG_HOME/eclipse/config
+if that variable is set). Each line is an ordinary command, typically
+.BR alias ,
+.B export
+and
+.BR set .
+The file is ignored if it belongs to another user or is writable by
+everyone.
+.PP
+.B set
+lists every setting;
+.BI set " KEY VALUE"
+changes one. Settings include
+.BR prompt ,
+.BR prompt2 ,
+.BR symbol ,
+.BR git_prefix ,
+.BR git_suffix ,
+.BR color ,
+.BR color.user ,
+.BR color.host ,
+.BR color.path ,
+.BR color.git ,
+.BR color.symbol ,
+.BR color.error ,
+.BR color.bracket ,
+.BR color.suggestion ,
+.BR autosuggest ,
+.B suggest_commands
+and
+.BR history_size .
+Run
+.B help set
+for the prompt format.
+.SH ENVIRONMENT
+.TP
+.B ECLIPSE_HISTORY
+Path of the history file, overriding the default.
+.TP
+.B ECLIPSE_VERSION
+Set by Eclipse to its version.
+.TP
+.B NO_COLOR
+If set and not empty, Eclipse prints no colour.
+.TP
+.BR HOME ", " PATH ", " PWD ", " OLDPWD ", " SHLVL ", " TERM
+Used with their usual meanings.
+.SH FILES
+.TP
+.I ~/.config/eclipse/config
+Configuration.
+.TP
+.I ~/.local/share/eclipse/history
+Command history (mode 600). Commands typed with a leading space are
+not recorded.
+.SH EXIT STATUS
+The status of the last command run; 2 for a syntax error; 126 if a
+command cannot be executed; 127 if it is not found; 128 +
+.I N
+if it was ended by signal
+.IR N .
+.SH SEE ALSO
+.BR bash (1),
+.BR sh (1)

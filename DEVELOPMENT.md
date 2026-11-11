@@ -1,0 +1,271 @@
+# Eclipse development notes
+
+This file is the project's memory. It records how the code is organised,
+what is finished, what is not, and exactly what to do next, so that work
+can resume from a fresh checkout with no other context.
+
+**Keep it current.** Update the [Status](#status) and
+[Next steps](#next-steps) sections in the same commit as the work they
+describe.
+
+## Resuming work
+
+```sh
+cd ~/Projects/eclipse
+git status && git log --oneline | head     # where things were left
+make && make test                          # must pass before changing anything
+```
+
+Then read [Status](#status) and continue from [Next steps](#next-steps).
+
+Rules for every milestone:
+
+1. `make` builds with no warnings and `make test` passes.
+2. `README.md`, `docs/eclipse.1` and `config/config.example` describe what
+   is implemented, no more and no less.
+3. This file's Status and Next steps are updated.
+4. The milestone is committed.
+
+## Status
+
+Last updated: 2026-11-11.
+
+All three test suites pass: 400 unit checks, 185 integration tests,
+50 pty tests.
+
+### Done
+
+- **Core shell**: lexer, alias expansion, parser, expansion, execution,
+  pipelines, redirections, job control, signals. See the module table.
+- **Built-ins**: `cd pwd echo export unset alias unalias history set source
+  . type exec true false : help exit jobs fg bg wait kill`.
+- **Friendly commands**: `go up back whereami mkcd findfile extract recent
+  sysinfo`.
+- **Line editor**: UTF-8 editing, history navigation by prefix, Ctrl+R
+  search, inline suggestions, Tab completion, bracketed paste, multi-line
+  continuation, kill and yank.
+- **Prompt**: format string, theme colours, git branch, status-coloured
+  symbol.
+- **Config**: `~/.config/eclipse/config`, sourced as shell commands, with
+  ownership and permission checks.
+- **History**: persistent, mode 600, size-capped, `!!` and `!$`.
+- **Tests**: `tests/test_unit.c`, `tests/integration.sh`,
+  `tests/test_pty.c`.
+- **Docs**: `README.md`, `docs/eclipse.1`, `config/config.example`,
+  `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE`, this file.
+
+### Not done yet
+
+See [Next steps](#next-steps) for the order to do these in.
+
+- The sanitizer build (`make debug`) has not been run yet; the target
+  itself is untested.
+- GitHub files: issue and feature request templates, pull request
+  template, CI workflow.
+- A terminal screenshot for the README.
+- `make install` has not been run on the development machine.
+- Final review of README claims against actual behaviour.
+
+## Next steps
+
+Do these in order. Each is a commit.
+
+1. **Sanitizer pass.** Run `make debug`, then
+   `sh tests/integration.sh build-debug/eclipse-debug` and
+   `build/test_pty build-debug/eclipse-debug`. Fix anything ASan or UBSan
+   reports. If the `debug` target in the `Makefile` does not work, fix it.
+   Also build once with `CC=clang` to catch warnings GCC misses.
+2. **GitHub files.** Add `.github/ISSUE_TEMPLATE/bug_report.md`,
+   `.github/ISSUE_TEMPLATE/feature_request.md`,
+   `.github/ISSUE_TEMPLATE/config.yml`, `.github/pull_request_template.md`
+   and `.github/workflows/ci.yml` (build and `make test` in an
+   `archlinux:latest` container; the pty tests need no real terminal).
+3. **Screenshot.** Capture a real session (the pty harness in
+   `tests/test_pty.c` shows how to drive one), render it to
+   `docs/screenshot.png`, and reference it near the top of `README.md`.
+   It must show genuine Eclipse output.
+4. **Install locally.** `make install && make install-config`, then check
+   `~/.local/bin/eclipse --version` and start it once by hand. Do not run
+   `chsh` or edit any shell startup file.
+5. **Final review.** Read `README.md` top to bottom and try every example
+   in a real session; fix either the code or the text where they differ.
+   Confirm nothing personal is tracked:
+   `git grep -nI -e "$USER" -e "$HOME"` should print nothing.
+
+After that the project is ready for the owner to publish. The owner
+creates the GitHub repository and pushes; nothing here should contact
+GitHub.
+
+## Architecture
+
+One binary, no dependencies beyond glibc. GNU Readline is deliberately not
+used: it is GPL (the project is MIT) and cannot draw inline suggestions.
+
+### Life of a command line
+
+```
+lineedit.c   read a line (raw mode, history, completion, suggestions)
+history.c    expand !! and !$, then record the line
+shell.c      shell_run_string(): feed the text one line at a time
+parser.c       lex (lexer.c) -> expand aliases on tokens -> build the tree
+exec.c         exec_list(): for each and-or list, each pipeline
+expand.c         expand each word: braces, ~, $, $(), $(()), split, glob
+exec.c           builtin in-process, or fork + execvp per pipeline stage
+jobs.c           wait for the job, hand the terminal back
+```
+
+### Modules (`src/`)
+
+| File | Responsibility |
+|---|---|
+| `main.c` | Option parsing; the interactive loop (`repl`, `read_command`) |
+| `shell.c`, `shell.h` | Global `Shell` state, signal setup, `shell_run_string`, `shell_run_stream`, `shell_source_file`, config loading |
+| `lexer.c` | Text to tokens. Words keep their quotes; also the `lex_skip_*` scanners for nested `'..'`, `".."`, `$(..)`, `${..}`, `` `..` `` |
+| `parser.c` | Alias expansion on the token stream, then recursive descent into `List > AndOr > Pipeline > Command` |
+| `expand.c` | Word expansion into fields |
+| `arith.c` | `$((...))` integer expressions (precedence climbing) |
+| `exec.c` | Redirections, builtins in-process, pipelines, background lists, command substitution (`shell_capture`) |
+| `jobs.c` | Job table, foreground wait, `fg`/`bg`, notifications |
+| `builtins.c` | Core builtins, the builtin table, `shell_chdir`, the `back` stack |
+| `friendly.c` | `go up back whereami mkcd findfile sysinfo recent extract` |
+| `lineedit.c` | The line editor |
+| `complete.c` | What Tab offers |
+| `history.c` | History list, file, `!!` expansion |
+| `prompt.c` | Prompt format rendering, `git_branch()` |
+| `settings.c` | The `set` options table and colour parsing |
+| `suggest.c` | Edit distance, "did you mean", listing `$PATH` commands |
+| `alias.c`, `vars.c` | Alias table; shell and environment variables |
+| `util.c` | `xmalloc` family, `StrBuf`, `StrVec`, messages, UTF-8, paths |
+
+### Design decisions and the rules that follow
+
+**Words stay raw until execution.** The lexer keeps quotes and `$`
+expressions in the token text. `expand.c` interprets them into a "marked
+buffer" where every character carries a flag (`F_LIT`, `F_QUOTED`, `F_EXP`,
+`F_BREAK`, `F_QNULL`). Only `F_EXP` characters split on whitespace and
+only non-`F_QUOTED` characters glob. Any new expansion must tag its output
+correctly or quoting breaks.
+
+**Aliases expand on tokens, in command position**, before parsing
+(`expand_aliases` in `parser.c`). A name is not re-expanded at the same
+position (so `alias ls='ls --color'` is fine), and a hard cap of 256
+expansions per line catches loops through operators.
+
+**Source runs one complete command at a time** (`Runner` in `shell.c`).
+Lines are fed in and executed as soon as they parse. This is why an alias
+defined on one line works on the next, and why an error on one line of
+the config does not stop the rest. The interactive loop parses the whole
+input once only to decide whether to show the continuation prompt, then
+hands the text to `shell_run_string`.
+
+**Builtins run in the shell only when alone in the foreground**
+(`exec_simple`). In a pipeline or background job every stage is forked,
+builtins included. `run_builtin` saves and restores descriptors
+(`FdSave`) and temporary `NAME=value` assignments.
+
+**All expansion happens in the parent, before forking.** Simpler, and it
+lets `x=$(cmd)` report the status of `cmd` (`capture_ran`).
+
+**Job control follows the glibc manual's model.** Interactive shell: own
+process group, owns the terminal, ignores `SIGTSTP/SIGTTIN/SIGTTOU/SIGQUIT`.
+Each pipeline gets a process group; `tcsetpgrp` hands the terminal over
+and back. `setpgid` is called in both parent and child to avoid a race.
+Children call `shell_become_subshell()`, which restores default signals.
+
+**No work in signal handlers.** `SIGINT` and `SIGWINCH` handlers only set
+`shell_interrupted` / `shell_winch`. They are installed without
+`SA_RESTART` so blocking reads notice. Child status is collected with
+`waitpid` while waiting for a foreground job and once before each prompt
+(`jobs_reap`, `jobs_notify`), never from `SIGCHLD`.
+
+**Terminal modes.** The editor enters raw mode per line and restores
+before returning, so commands always see normal modes. After a foreground
+job: if it exited cleanly its terminal settings are adopted (so `stty`
+changes stick); if it was stopped or killed the shell's saved modes are
+restored. `SIGTERM`/`SIGHUP` handlers restore the terminal before dying.
+
+**The editor redraws the whole line after every key** (`refresh` in
+`lineedit.c`), tracking only the cursor's row relative to the prompt. When
+the text exactly fills a row it emits `\r\n` so the row arithmetic is
+exact. Before each prompt `ensure_fresh_line` guarantees column 0 even if
+the last command printed no trailing newline.
+
+**Untrusted text is sanitised before display.** Directory names, branch
+names, completion candidates and `sysinfo` values go through
+`sb_put_sanitized`. Pasted text has control characters stripped, newlines
+shown as `⏎`, and is never executed until Enter.
+
+**Config is code.** `~/.config/eclipse/config` is sourced, so it is
+refused if owned by another user or world-writable (`shell_load_config`).
+
+**No `system()`.** `extract` and everything else exec with an argument
+vector. A file name starting with `-` is passed as `./-name`.
+
+### How to add things
+
+**A builtin:** write `static int builtin_NAME(int argc, char **argv)` in
+`builtins.c` (or declare it in `builtins.h` and define it in
+`friendly.c`), add a row to the `builtins[]` table with a group, usage and
+one-line summary. `help`, Tab completion and typo suggestions pick it up
+from the table. Return 0 for success, 1 for failure, 2 for misuse. Report
+errors with `msg_error("NAME: ...")` and add a `msg_hint` where it helps.
+Then add tests and document it in `README.md` and `docs/eclipse.1`.
+
+**A setting:** add a field to `Settings` in `settings.h` and a row to
+`options[]` in `settings.c`. `set`, completion and validation come free.
+Document it in `README.md`, `help_set()` in `builtins.c` and
+`config/config.example`.
+
+**A prompt escape:** add a `case` in `prompt_render` (`prompt.c`) and
+document it in the three places above.
+
+## Testing
+
+| Command | Runs |
+|---|---|
+| `make test` | everything |
+| `make test-unit` | `build/test_unit` (links all objects except `main.o`) |
+| `make test-integration` | `sh tests/integration.sh ./eclipse` |
+| `make test-pty` | `build/test_pty ./eclipse` |
+
+All suites create a private temporary `HOME` (under `$TMPDIR`, default
+`/tmp`) and never touch the real config or history.
+
+The pty tests echo back what is typed, so they assert on text that only
+running the command can produce, e.g. type `echo sum-$((40+2))` and expect
+`sum-42`. `expect()` only searches output not yet matched.
+
+## Known limitations and bugs
+
+Deliberate omissions (documented in the README under "What Eclipse is
+not"): control flow, functions, here-documents, `( )` and `{ }` groups,
+`${NAME%pattern}` forms, arrays, `$'...'`, process substitution, `|&`.
+
+Known rough edges, none of which fail a test:
+
+- **Wide characters at the right edge.** A double-width character that
+  straddles the last column makes the editor's cursor arithmetic off by
+  one until the next redraw of a shorter line.
+- **`!$` is not quote-aware.** It takes the last whitespace-separated word
+  of the previous command.
+- **`wait` takes no arguments**; it waits for every background job.
+- **`extract` cannot be suspended.** It waits synchronously, so Ctrl+Z is
+  ignored while a tool runs (Ctrl+C works).
+- **Typo suggestions are case-sensitive.** `LS` does not suggest `ls`.
+- **Completion and `2>`.** In `cmd 2> fi<Tab>` the `2` is seen as a word;
+  completion still offers files, but a leading `2>` at the start of a
+  line would treat `2` as the command name.
+- **History trimming race.** Two shells starting at the same moment with
+  an over-long history file can both rewrite it; entries are not lost
+  beyond the configured size, but ordering between the two may vary.
+- **Suggestions with very long lines.** A suggestion that would scroll
+  past the bottom of the screen is drawn in full rather than truncated.
+
+## Release checklist (for the owner)
+
+1. `make clean && make && make test`.
+2. Replace `<your-username>` in `README.md` with the GitHub account name.
+3. Optionally change the copyright holder in `LICENSE`.
+4. Check the commit author: `git log --format='%an <%ae>' | sort -u`. That
+   name and email become public when pushed.
+5. Create the repository on GitHub and push.

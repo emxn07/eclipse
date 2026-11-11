@@ -1,0 +1,63 @@
+# Eclipse configuration
+#
+# Copy this file to ~/.config/eclipse/config (or run `make install-config`).
+# It is read once, when an interactive Eclipse starts. Every line is an
+# ordinary Eclipse command, so anything you can type at the prompt works
+# here. Lines starting with '#' are comments.
+#
+# Try a line at the prompt first; when you like it, uncomment it here.
+
+# ---- Aliases ---------------------------------------------------------
+alias ll='ls -lh --color=auto'
+alias la='ls -lAh --color=auto'
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+alias ..='up'
+alias ...='up 2'
+
+# ---- Environment -----------------------------------------------------
+# export EDITOR=nano
+# export PATH=~/.local/bin:$PATH
+
+# ---- Prompt ----------------------------------------------------------
+# The default looks like:  [user@host ~/projects] (main) ❯
+#
+#   %u user        %h host         %w directory (~ for home)
+#   %W last part of the directory  %d directory (full path)
+#   %g git branch  %s symbol       %? last exit status
+#   %t HH:MM       %T HH:MM:SS     %j number of jobs
+#   %n new line    %% a literal %
+#   %{NAME} switches colour: a theme colour (user, host, path, git,
+#           symbol, error, bracket), 'reset', or any colour spec.
+#
+# A shorter prompt:
+# set prompt '%{path}%w%{reset}%g %s '
+#
+# A two-line prompt with the time:
+# set prompt '%{bracket}%t%{reset} %{path}%w%{reset}%g%n%s '
+#
+# The symbol turns the 'error' colour after a command fails.
+# set symbol '➜'
+# set git_prefix ' on '
+# set git_suffix ''
+
+# ---- Colours ---------------------------------------------------------
+# Names: black red green yellow blue magenta cyan white, bright-NAME,
+# a number 0-255, or #rrggbb. Prefix with bold, dim, italic or underline.
+#
+# set color.user       'bold magenta'
+# set color.host       'magenta'
+# set color.path       'bold cyan'
+# set color.git        'yellow'
+# set color.symbol     'bold magenta'
+# set color.error      'bold red'
+# set color.bracket    'bright-black'
+# set color.suggestion 'bright-black'
+#
+# Turn colour off entirely (the NO_COLOR environment variable also works):
+# set color off
+
+# ---- Behaviour -------------------------------------------------------
+# set autosuggest off        # no grey suggestions from history while typing
+# set suggest_commands off   # no "did you mean" for mistyped commands
+# set history_size 10000     # how many commands to remember (default 5000)
