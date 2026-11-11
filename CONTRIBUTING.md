@@ -57,7 +57,6 @@ To try your build without installing it, run `./eclipse --norc`.
 4. Run `make test`. The build must stay free of compiler warnings.
 5. Run `make test-debug` as well. It repeats every suite under
    AddressSanitizer and UndefinedBehaviorSanitizer and must stay clean.
-
 6. Update `README.md`, `docs/eclipse.1` and `config/config.example` if
    behaviour that users see has changed, and add a line to `CHANGELOG.md`.
 

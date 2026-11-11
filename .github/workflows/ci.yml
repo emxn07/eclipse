@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build and test (${{ matrix.cc }})
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - name: Install build tools
+        run: pacman -Syu --noconfirm --needed base-devel clang git zip unzip
+
+      - uses: actions/checkout@v4
+
+      # The tests refuse nothing as root, but running as an ordinary
+      # user matches how the shell is really used.
+      - name: Create an unprivileged user
+        run: |
+          useradd -m builder
+          chown -R builder .
+
+      - name: Build
+        run: su builder -c "make CC=${{ matrix.cc }}"
+
+      - name: Test
+        run: su builder -c "make test CC=${{ matrix.cc }}"
+
+      - name: Test under sanitizers
+        run: su builder -c "make test-debug CC=${{ matrix.cc }}"

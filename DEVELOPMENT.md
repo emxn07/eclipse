@@ -60,6 +60,11 @@ All three test suites pass: 400 unit checks, 185 integration tests,
 - **Rendering check**: line wrapping, a line that exactly fills the row,
   double-width characters, the no-trailing-newline mark, suggestions and
   Tab listings were inspected on a 30-column emulated terminal.
+- **GitHub files**: issue templates, pull request template and
+  `.github/workflows/ci.yml` (GCC and Clang in an `archlinux` container:
+  build, `make test`, `make test-debug`). The same commands pass locally
+  with both compilers, but **the workflow itself has never run** because
+  the repository has not been pushed. Check the first run on GitHub.
 - **Docs**: `README.md`, `docs/eclipse.1`, `config/config.example`,
   `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE`, this file.
 
@@ -67,8 +72,6 @@ All three test suites pass: 400 unit checks, 185 integration tests,
 
 See [Next steps](#next-steps) for the order to do these in.
 
-- GitHub files: issue and feature request templates, pull request
-  template, CI workflow.
 - A terminal screenshot for the README.
 - `make install` has not been run on the development machine.
 - Final review of README claims against actual behaviour.
@@ -77,19 +80,14 @@ See [Next steps](#next-steps) for the order to do these in.
 
 Do these in order. Each is a commit.
 
-1. **GitHub files.** Add `.github/ISSUE_TEMPLATE/bug_report.md`,
-   `.github/ISSUE_TEMPLATE/feature_request.md`,
-   `.github/ISSUE_TEMPLATE/config.yml`, `.github/pull_request_template.md`
-   and `.github/workflows/ci.yml` (build and `make test` in an
-   `archlinux:latest` container; the pty tests need no real terminal).
-2. **Screenshot.** Capture a real session (the pty harness in
+1. **Screenshot.** Capture a real session (the pty harness in
    `tests/test_pty.c` shows how to drive one), render it to
    `docs/screenshot.png`, and reference it near the top of `README.md`.
    It must show genuine Eclipse output.
-3. **Install locally.** `make install && make install-config`, then check
+2. **Install locally.** `make install && make install-config`, then check
    `~/.local/bin/eclipse --version` and start it once by hand. Do not run
    `chsh` or edit any shell startup file.
-4. **Final review.** Read `README.md` top to bottom and try every example
+3. **Final review.** Read `README.md` top to bottom and try every example
    in a real session; fix either the code or the text where they differ.
    Confirm nothing personal is tracked:
    `git grep -nI -e "$USER" -e "$HOME"` should print nothing.
