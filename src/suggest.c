@@ -3,6 +3,7 @@
 
 #include <dirent.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -121,8 +122,25 @@ void path_commands(const char *prefix, StrVec *out)
 typedef struct {
     char *name;
     size_t dist;
-    int bonus; /* 0 if it shares the first letter, else 1 */
+    int scrambled; /* 0 if it is the same letters in another order */
+    int bonus;     /* 0 if it shares the first letter, else 1 */
 } Match;
+
+/* True if a and b consist of exactly the same characters. Swapping two
+ * letters is the most common typing mistake, so such candidates are by
+ * far the likeliest intent. */
+static bool same_letters(const char *a, const char *b)
+{
+    int counts[256] = { 0 };
+    for (; *a; a++)
+        counts[(unsigned char)*a]++;
+    for (; *b; b++)
+        counts[(unsigned char)*b]--;
+    for (size_t i = 0; i < 256; i++)
+        if (counts[i] != 0)
+            return false;
+    return true;
+}
 
 typedef struct {
     const char *name;
@@ -153,6 +171,7 @@ static void match_visit(const char *cand, void *vctx)
     }
     c->matches[c->n].name = xstrdup(cand);
     c->matches[c->n].dist = d;
+    c->matches[c->n].scrambled = same_letters(c->name, cand) ? 0 : 1;
     c->matches[c->n].bonus = cand[0] == c->name[0] ? 0 : 1;
     c->n++;
 }
@@ -162,6 +181,8 @@ static int cmp_match(const void *a, const void *b)
     const Match *x = a, *y = b;
     if (x->dist != y->dist)
         return x->dist < y->dist ? -1 : 1;
+    if (x->scrambled != y->scrambled)
+        return x->scrambled - y->scrambled;
     if (x->bonus != y->bonus)
         return x->bonus - y->bonus;
     return strcmp(x->name, y->name);
@@ -172,7 +193,10 @@ static void match_finish(MatchCtx *c, StrVec *out, size_t max)
     if (c->n > 1)
         qsort(c->matches, c->n, sizeof *c->matches, cmp_match);
     for (size_t i = 0; i < c->n; i++) {
-        if (i < max)
+        /* only the best tier: a worse guess next to a good one is noise */
+        bool best_tier = c->matches[i].dist == c->matches[0].dist &&
+                         c->matches[i].scrambled == c->matches[0].scrambled;
+        if (i < max && best_tier)
             sv_push(out, c->matches[i].name);
         else
             free(c->matches[i].name);

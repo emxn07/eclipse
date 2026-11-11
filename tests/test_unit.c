@@ -738,6 +738,16 @@ static void test_suggest(void)
     CHECK_STR(best, "Downloads");
     free(best);
     CHECK(suggest_closest("zzzzzz", cands, 4) == NULL);
+
+    /* swapped letters beat an equally close substitution */
+    char *close[] = { "gtf", "git", "gtk" };
+    best = suggest_closest("gti", close, 3);
+    CHECK_STR(best, "git");
+    free(best);
+    char *shorts[] = { "sh", "ss", "ls" };
+    best = suggest_closest("sl", shorts, 3);
+    CHECK_STR(best, "ls");
+    free(best);
     CHECK(suggest_closest("", cands, 4) == NULL);
 
     /* builtins are offered for near misses */
@@ -751,6 +761,12 @@ static void test_suggest(void)
     suggest_commands("exitt", &s, 3);
     CHECK(sv_contains(&s, "exit"));
     CHECK(s.len <= 3);
+    sv_free(&s);
+    /* a worse guess is not listed next to a clearly better one */
+    suggest_commands("hsitory", &s, 3);
+    CHECK(s.len == 1);
+    if (s.len)
+        CHECK_STR(s.items[0], "history");
     sv_free(&s);
 }
 

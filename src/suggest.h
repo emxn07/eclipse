@@ -16,7 +16,9 @@ size_t edit_distance(const char *a, const char *b);
 size_t suggest_threshold(size_t len);
 
 /* Appends up to max command names (builtins, aliases, programs in
- * $PATH) that closely resemble name, best first. */
+ * $PATH) that closely resemble name. Only the best tier is returned:
+ * the smallest edit distance, and within it names made of the same
+ * letters in a different order ("gti" -> "git") ahead of the rest. */
 void suggest_commands(const char *name, StrVec *out, size_t max);
 
 /* Returns the candidate closest to name (a new string), or NULL if
