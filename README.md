@@ -346,7 +346,7 @@ runs three suites:
 | `make test-pty` | A pseudo-terminal that types at Eclipse: editing keys, Tab, history, paste, Ctrl+C, Ctrl+Z, `fg` and `bg` |
 
 The tests use a temporary `HOME` and never read or write your real config
-or history. `make debug` builds a copy with AddressSanitizer and
+or history. `make test-debug` repeats all three under AddressSanitizer and
 UndefinedBehaviorSanitizer.
 
 ## Uninstall

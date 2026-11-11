@@ -6,6 +6,7 @@
 #   make install-config create ~/.config/eclipse/config if it is missing
 #   make uninstall      remove what `make install` installed
 #   make debug          build with AddressSanitizer and UBSan
+#   make test-debug     run every test suite under the sanitizers
 #   make clean
 #
 # Override PREFIX for a different location, e.g.
@@ -37,7 +38,7 @@ DEP  = $(OBJ:.o=.d)
 # everything except main(), for linking into the unit tests
 LIBOBJ = $(filter-out $(BUILD)/main.o,$(OBJ))
 
-.PHONY: all test check test-unit test-integration test-pty debug \
+.PHONY: all test check test-unit test-integration test-pty debug test-debug \
         install install-config uninstall clean
 
 all: eclipse
@@ -75,13 +76,23 @@ test: test-unit test-integration test-pty
 
 check: test
 
-# A separate build tree with sanitizers; run the tests against it with
-#   make debug && make test BUILD=build-debug   (after `make clean`), or
-#   sh tests/integration.sh build-debug/eclipse
+# A separate build tree with AddressSanitizer and UBSan. `make test-debug`
+# builds it and runs all three suites against it.
+# (-Wno-format-truncation: GCC reports a false "null format string" for
+# vsnprintf(NULL, 0, ...) only when the sanitizers are enabled.)
+SANITIZE = -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
+           -Wno-format-truncation
+DEBUG_MAKE = $(MAKE) BUILD=build-debug HARDEN= HARDEN_LD= CFLAGS="$(SANITIZE)"
+
 debug:
-	$(MAKE) BUILD=build-debug HARDEN= HARDEN_LD= \
-	    CFLAGS="-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer" \
-	    build-debug/eclipse-debug
+	$(DEBUG_MAKE) build-debug/eclipse-debug
+
+test-debug:
+	$(DEBUG_MAKE) build-debug/eclipse-debug build-debug/test_unit build-debug/test_pty
+	UBSAN_OPTIONS=halt_on_error=1 build-debug/test_unit
+	UBSAN_OPTIONS=halt_on_error=1 sh tests/integration.sh build-debug/eclipse-debug
+	UBSAN_OPTIONS=halt_on_error=1 build-debug/test_pty build-debug/eclipse-debug
+	@echo "All test suites passed under the sanitizers."
 
 build-debug/eclipse-debug: $(OBJ)
 	$(CC) $(ALL_CFLAGS) -o $@ $(OBJ) $(ALL_LDFLAGS)

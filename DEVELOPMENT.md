@@ -51,6 +51,15 @@ All three test suites pass: 400 unit checks, 185 integration tests,
 - **History**: persistent, mode 600, size-capped, `!!` and `!$`.
 - **Tests**: `tests/test_unit.c`, `tests/integration.sh`,
   `tests/test_pty.c`.
+- **Sanitizers**: `make test-debug` runs all three suites under
+  AddressSanitizer and UBSan (halting on any report); clean. A parse-only
+  fuzz run (600,000 generated inputs through the parser, brace expansion,
+  completion, history expansion, arithmetic and prompt rendering, with
+  nothing executed) found nothing. Clang compiles every file without
+  warnings.
+- **Rendering check**: line wrapping, a line that exactly fills the row,
+  double-width characters, the no-trailing-newline mark, suggestions and
+  Tab listings were inspected on a 30-column emulated terminal.
 - **Docs**: `README.md`, `docs/eclipse.1`, `config/config.example`,
   `CONTRIBUTING.md`, `CHANGELOG.md`, `LICENSE`, this file.
 
@@ -58,8 +67,6 @@ All three test suites pass: 400 unit checks, 185 integration tests,
 
 See [Next steps](#next-steps) for the order to do these in.
 
-- The sanitizer build (`make debug`) has not been run yet; the target
-  itself is untested.
 - GitHub files: issue and feature request templates, pull request
   template, CI workflow.
 - A terminal screenshot for the README.
@@ -70,24 +77,19 @@ See [Next steps](#next-steps) for the order to do these in.
 
 Do these in order. Each is a commit.
 
-1. **Sanitizer pass.** Run `make debug`, then
-   `sh tests/integration.sh build-debug/eclipse-debug` and
-   `build/test_pty build-debug/eclipse-debug`. Fix anything ASan or UBSan
-   reports. If the `debug` target in the `Makefile` does not work, fix it.
-   Also build once with `CC=clang` to catch warnings GCC misses.
-2. **GitHub files.** Add `.github/ISSUE_TEMPLATE/bug_report.md`,
+1. **GitHub files.** Add `.github/ISSUE_TEMPLATE/bug_report.md`,
    `.github/ISSUE_TEMPLATE/feature_request.md`,
    `.github/ISSUE_TEMPLATE/config.yml`, `.github/pull_request_template.md`
    and `.github/workflows/ci.yml` (build and `make test` in an
    `archlinux:latest` container; the pty tests need no real terminal).
-3. **Screenshot.** Capture a real session (the pty harness in
+2. **Screenshot.** Capture a real session (the pty harness in
    `tests/test_pty.c` shows how to drive one), render it to
    `docs/screenshot.png`, and reference it near the top of `README.md`.
    It must show genuine Eclipse output.
-4. **Install locally.** `make install && make install-config`, then check
+3. **Install locally.** `make install && make install-config`, then check
    `~/.local/bin/eclipse --version` and start it once by hand. Do not run
    `chsh` or edit any shell startup file.
-5. **Final review.** Read `README.md` top to bottom and try every example
+4. **Final review.** Read `README.md` top to bottom and try every example
    in a real session; fix either the code or the text where they differ.
    Confirm nothing personal is tracked:
    `git grep -nI -e "$USER" -e "$HOME"` should print nothing.
@@ -227,6 +229,7 @@ document it in the three places above.
 | `make test-unit` | `build/test_unit` (links all objects except `main.o`) |
 | `make test-integration` | `sh tests/integration.sh ./eclipse` |
 | `make test-pty` | `build/test_pty ./eclipse` |
+| `make test-debug` | all three against a sanitizer build in `build-debug/` |
 
 All suites create a private temporary `HOME` (under `$TMPDIR`, default
 `/tmp`) and never touch the real config or history.

@@ -37,7 +37,8 @@ Useful targets:
 | `make` | Build `./eclipse` |
 | `make test` | Run every test suite |
 | `make test-unit`, `make test-integration`, `make test-pty` | Run one suite |
-| `make debug` | Build `build-debug/eclipse-debug` with AddressSanitizer and UBSan |
+| `make test-debug` | Run every suite under AddressSanitizer and UBSan |
+| `make debug` | Just build `build-debug/eclipse-debug` with the sanitizers |
 | `make install` | Install to `~/.local` (set `PREFIX` to change) |
 | `make clean` | Remove build output |
 
@@ -54,13 +55,8 @@ To try your build without installing it, run `./eclipse --norc`.
    - behaviour of a command line → `tests/integration.sh`
    - anything involving keys, the prompt or job control → `tests/test_pty.c`
 4. Run `make test`. The build must stay free of compiler warnings.
-5. For changes to memory handling, also run the integration suite against
-   the sanitizer build:
-
-   ```sh
-   make debug
-   sh tests/integration.sh build-debug/eclipse-debug
-   ```
+5. Run `make test-debug` as well. It repeats every suite under
+   AddressSanitizer and UndefinedBehaviorSanitizer and must stay clean.
 
 6. Update `README.md`, `docs/eclipse.1` and `config/config.example` if
    behaviour that users see has changed, and add a line to `CHANGELOG.md`.
